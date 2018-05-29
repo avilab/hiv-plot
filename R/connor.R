@@ -8,50 +8,50 @@ library(gridExtra)
 library(gtable)
 library(viridis)
 
-(rb <- read_csv2("data/rebound_sample_vol1.csv"))
-rb <- mutate(rb, time = parse_number(year))
+# NB! adjust path if file not in data folder
+(rb <- readr::read_csv2("data/rebound_sample_vol1.csv"))
 
-
-rb_gathered <- filter(rb, !is.na(time)) %>% 
-  select(time, `rep per y`, `inter per y`) %>% 
-  gather(key, value, -time)
+rb_gathered <- select(rb, year, `rep per y`, `inter per y`) %>% 
+  gather(key, value, -year)
 
 #' plotgrob
-p <- ggplot(data = rb_gathered, mapping = aes(x = time, y = value, color = key)) +
+p <- ggplot(data = rb_gathered, mapping = aes(x = year, y = value, color = key, group = key)) +
   geom_point() +
   geom_line() +
-  labs(x = "Years from baseline") +
-  scale_x_continuous(breaks = unique(rb_gathered$time)) +
-  theme_minimal() +
   theme(axis.title.y = element_blank(),
-        legend.background = element_blank(),
-        legend.key = element_rect(colour = 0, inherit.blank = TRUE),
         legend.position = c(0.8, 0.8),
         legend.title = element_blank())
 pg <- ggplotGrob(p)
 
 #' table grob
 rb_sideways <- select(rb, `viral rebound`, `person years`) %>% 
-  as.matrix() %>% t() %>% 
-  as_data_frame() 
-colnames(rb_sideways) <- rb$year
-rb_sw <- bind_cols(data_frame(at_risk = c("viral rebound", "person years")), rb_sideways)
-tbl <- tableGrob(rb_sw, cols = NULL, rows = NULL, theme = ttheme_minimal(padding = unit(c(8, 4), "mm")))
+  t() %>% 
+  as_data_frame()
+rb_sw <- bind_cols(data_frame(at_risk = c("Viral rebound", "Person years")), rb_sideways)
+tbl <- tableGrob(rb_sw, cols = NULL, rows = NULL)
+
 tbl$widths <- unit(rep(1/ncol(rb_sw), ncol(rb_sw)), "npc")
 
 #' other bits and pices
 rect <- rectGrob(gp = gpar(fill = 0, col = 0))
-y.title <- grobTree(rect, textGrob("Viral rebound?", rot = 90, vjust = 2))
-firstcol.title <- grobTree(rect, textGrob("Number at risk", vjust = 1))
-lastcol.title <- grobTree(rect, textGrob("Other", vjust = 1))
-mat <- matrix(list(y.title, pg, rect, firstcol.title, rect, lastcol.title), nrow = 2, byrow = TRUE)
 
-g <- gtable_matrix(name = "plot", grobs = mat, 
-                   widths = unit(c(1/ncol(rb_sw), (ncol(rb_sw) - 2)/ncol(rb_sw), 1/ncol(rb_sw)), "npc"), 
-                   heights = unit(c(9/10, 1/10), c("npc")))
+#' Plot y-axis title
+y.title <- grobTree(rect, textGrob("Viral rebound?", rot = 90))
 
-gg <- gtable_matrix(name = "tab", grobs = matrix(list(g, tbl), nrow = 2), 
+#' Table first column title
+firstcol.title <- gtable_row("title", grobs = list(grobTree(rect, textGrob("Number at risk")), rect),
+                             widths = unit(c(1 / ncol(rb_sw), 1 - (1 / ncol(rb_sw))), "npc"))
+
+gplot <- gtable_matrix("plot", grobs = matrix(list(y.title, pg), nrow = 1), 
+                    widths = unit(c(1 / (ncol(rb_sw) + 5), 1 - (1 / (ncol(rb_sw) + 5))), "npc"),
+                    heights = unit(1, "npc"))
+
+gtab <- gtable_matrix("table", grobs = matrix(list(firstcol.title, tbl), nrow = 2), 
+                       widths = unit(1, "npc"),
+                       heights = unit(c(1/4, 3/4), "npc"))
+
+gg <- gtable_matrix(name = "gg", grobs = matrix(list(gplot, gtab), nrow = 2), 
                     widths = unit(1, "npc"),
-                    heights = unit(c(9/10, 1/10), "npc"))
+                    heights = unit(c(8/10, 2/10), "npc"))
 
 grid.draw(gg)
