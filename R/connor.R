@@ -36,7 +36,7 @@ tbl$widths <- unit(rep(1/ncol(rb_sw), ncol(rb_sw)), "npc")
 rect <- rectGrob(gp = gpar(fill = 0, col = 0))
 
 #' Plot y-axis title
-y.title <- grobTree(rect, textGrob("Viral rebound?", rot = 90))
+y.title <- grobTree(rect, textGrob("Viral rebound", rot = 90))
 
 #' Table first column title
 firstcol.title <- gtable_row("title", grobs = list(grobTree(rect, textGrob("Number at risk")), rect),
