@@ -3,6 +3,7 @@
 #'ehk selles artiklis - viiruse väljumine ravi kontrolli alt peale seda kui ta on korra kontrolli alla saadud
 
 library(tidyverse)
+library(broom)
 library(grid)
 library(gridExtra)
 library(gtable)
@@ -10,6 +11,11 @@ library(viridis)
 
 # NB! adjust path if file not in data folder
 (rb <- readr::read_csv2("data/rebound_sample_vol1.csv"))
+
+#' calculate ci and viral rebound 
+mutate(rb, rb_test = map2(`viral rebound`, `person years`, binom.test),
+       rb_tidy = map(rb_test, tidy)) %>% 
+  unnest(rb_tidy)
 
 rb_gathered <- select(rb, year, `rep per y`, `inter per y`) %>% 
   gather(key, value, -year)
@@ -36,7 +42,7 @@ tbl$widths <- unit(rep(1/ncol(rb_sw), ncol(rb_sw)), "npc")
 rect <- rectGrob(gp = gpar(fill = 0, col = 0))
 
 #' Plot y-axis title
-y.title <- grobTree(rect, textGrob("Viral rebound", rot = 90))
+y.title <- grobTree(rect, textGrob("Viral rebound per 100 person years", rot = 90))
 
 #' Table first column title
 firstcol.title <- gtable_row("title", grobs = list(grobTree(rect, textGrob("Number at risk")), rect),
